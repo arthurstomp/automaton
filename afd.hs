@@ -2,21 +2,48 @@
 
 import Data.Set
 import Data.Matrix
-import Prelude hiding (map)
+import Data.List
 
-data AFD a = AFD { states :: Set a
-                 , alphabet :: Set a
-                 , transition :: Matrix a
-                 , initialState :: Integer
-                 , finalStates :: Set a
+data AFD = AFD { states :: Set Int
+                 , alphabet :: Set Char
+                 , transition :: Matrix Int
+                 , initialState :: Int
+                 , finalStates :: Set Int
                  } deriving (Show)
 
-test :: AFD a 
-test = AFD {states = Data.Set.empty, alphabet = Data.Set.empty, transition = Data.Matrix.fromList 0 0 [], initialState = 0, finalStates = Data.Set.empty}
+afd :: [Int] -> [Char] -> ((Int,Int) -> Int) -> Int -> [Int] -> AFD 
+afd s a ft is fs = AFD { states = Data.Set.fromList s
+                       , alphabet = Data.Set.fromList a
+                       , transition = t
+                       , initialState = is
+                       , finalStates = (Data.Set.fromList fs)
+                       }
+  where t = Data.Matrix.matrix (length s) (length a) $ ft
 
-powerset s
-    | s == empty = singleton empty
-    | otherwise = map (insert x) pxs `union` pxs
-      where (x, xs) = deleteFindMin s
-            pxs = powerset xs
+accept :: AFD -> Int -> Bool
+accept afd cs = Data.Set.member cs $ finalStates afd
 
+nextState :: AFD -> Int -> Char -> Int
+nextState afd cs t = do 
+  case Data.List.elemIndex t $ toAscList $ alphabet afd of
+    Just n -> m Data.Matrix.! (cs,n+1)
+    Nothing -> -1
+  where m = transition afd
+
+test :: AFD 
+test = AFD { states = Data.Set.empty
+           , alphabet = Data.Set.empty
+           , transition = Data.Matrix.fromList 0 0 []
+           , initialState = 0
+           , finalStates = Data.Set.empty
+           }
+
+afd1 = afd [1,2] ['0','1'] foo 1 [2] 
+
+foo :: (Int,Int) -> Int
+foo (x,y) 
+  | x == 1 && y == 1 = 1
+  | x == 1 && y == 2 = 2
+  | x == 2 && y == 1 = 1
+  | x == 2 && y == 2 = 2
+  | otherwise = 0
