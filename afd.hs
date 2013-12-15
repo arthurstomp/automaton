@@ -30,6 +30,10 @@ nextState afd cs t = do
     Nothing -> -1
   where m = transition afd
 
+compute :: AFD -> [Char] -> Bool
+compute afd chain = accept afd $ last xs
+  where xs = Data.List.map (nextState afd $ initialState afd) chain
+
 test :: AFD 
 test = AFD { states = Data.Set.empty
            , alphabet = Data.Set.empty
