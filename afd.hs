@@ -1,19 +1,14 @@
---Functions for Autonomous Deterministic Finite
+--Functions for AFD
 
-import Data.Set (Set)
-import Data.Matrix (Matrix)
-import System.Environment
+import Data.Set
+import Data.Matrix
 
-data AFD s a t is fs = AFD { states :: s
-                           , alphabet :: a
-                           , transition :: t
-                           , initialState :: is
-                           , finalStates :: fs
-                           } deriving (Show)
+data AFD a = AFD { states :: Set a
+               , alphabet :: Set a
+               , transition :: Matrix a
+               , initialState :: Integer
+               , finalStates :: Set a
+               } deriving (Show)
 
-test = [1,2,3,4,5]
-test
-
-main :: IO()
-main = getArgs >>= print . haqify . head
-haqify s = "Haq! " ++ s
+test :: AFD a 
+test = AFD {states = Data.Set.empty, alphabet = Data.Set.empty, transition = Data.Matrix.fromList 0 0 [], initialState = 0, finalStates = Data.Set.empty}
