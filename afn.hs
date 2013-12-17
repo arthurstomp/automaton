@@ -22,6 +22,33 @@ afn s a ft is fs = AFN { states = Data.Set.fromList s
   where t = Data.Matrix.matrix (length s) (Data.Set.size alpha) $ ft
         alpha = Data.Set.insert 'E' $ Data.Set.fromList a
 
+-- Durante a passagem do estado eu preciso lembrar de não salvar estados Nothing
+accept :: AFN -> Set (Maybe Int) -> Bool
+accept afn cs  = True `elem` acceptance 
+  where acceptance = [ Data.Set.member (Data.Maybe.fromJust x) $ finalStates afn | x <- Data.Set.elems cs] 
+
+nextState :: AFN -> Set (Maybe Int) -> Char -> Set (Maybe Int)
+nextState afn cs t = Data.Set.union (partialNextState afn cs t) (partialNextState afn cs 'E')
+
+compute :: AFN  -> [Char] -> Bool
+compute afn chain = True
+
+partialNextState :: AFN -> Set (Maybe Int) -> Char -> Set (Maybe Int)
+partialNextState afn cs t = Data.Set.unions [transitionFromState afn (Data.Maybe.fromJust x) t | x <- Data.Set.elems cs]
+
+transitionFromState :: AFN -> Int -> Char -> Set (Maybe Int)
+transitionFromState afn cs t = case ns of
+  Just n -> Data.Set.map Just n
+  Nothing -> Data.Set.empty
+  where it = indexTransition afn t
+        ns = (transition afn) Data.Matrix.! (cs,it+1)
+
+
+indexTransition :: AFN -> Char -> Int
+indexTransition afn t = Data.Maybe.fromJust $ Data.List.elemIndex t ascList
+  where a = alphabet afn
+        ascList = Data.Set.toAscList a 
+
 foo :: (Int,Int) -> Maybe (Set Int)
 foo (x,y)
   | x == 1 && y == 1 = Just $ Data.Set.singleton 1
@@ -38,19 +65,6 @@ foo (x,y)
   | x == 4 && y == 3 = Nothing
 
 afn1 = afn [1,2,3,4] ['0','1'] foo 1 [4] 
-
--- Durante a passagem do estado eu preciso lembrar de não salvar estados Nothing
-accept :: AFN -> Set (Maybe Int) -> Bool
-accept afn cs  = True `elem` acceptance 
-  where acceptance = [ Data.Set.member (Data.Maybe.fromJust x) $ finalStates afn | x <- Data.Set.elems cs] 
-
---nextState :: AFN -> Maybe (Set Int) -> Char -> Int
---nextState afn mcs t = do 
---  case Data.List.elemIndex t $ toAscList $ alphabet afn of
---    Just n -> m Data.Matrix.! (cs,n+1)
---    Nothing -> -1
---  where m = transition afn
---        cs = fromMaybe Nothing mcs
 
 --compute :: AFD -> [Char] -> Bool
 --compute afd chain = accept afd $ last xs
