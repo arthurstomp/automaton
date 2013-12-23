@@ -27,11 +27,16 @@ accept :: AFN -> Set (Maybe Int) -> Bool
 accept afn cs  = True `elem` acceptance 
   where acceptance = [ Data.Set.member (Data.Maybe.fromJust x) $ finalStates afn | x <- Data.Set.elems cs] 
 
+compute :: AFN -> Set (Maybe Int) -> [Char] -> Bool
+compute afn cs [] = accept afn cs
+compute afn cs (x:xs) = compute afn ns xs
+  where ns = nextState afn cs x
+
+prettyInitialState :: AFN -> Set (Maybe Int)
+prettyInitialState afn = Data.Set.singleton $ Just $ initialState afn
+
 nextState :: AFN -> Set (Maybe Int) -> Char -> Set (Maybe Int)
 nextState afn cs t = Data.Set.union (partialNextState afn cs t) (partialNextState afn cs 'E')
-
-compute :: AFN  -> [Char] -> Bool
-compute afn chain = True
 
 partialNextState :: AFN -> Set (Maybe Int) -> Char -> Set (Maybe Int)
 partialNextState afn cs t = Data.Set.unions [transitionFromState afn (Data.Maybe.fromJust x) t | x <- Data.Set.elems cs]
