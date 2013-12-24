@@ -35,14 +35,6 @@ compute afd cs [] = accept afd cs
 compute afd cs (x:xs) = compute afd ns xs
   where ns = nextState afd cs x
 
-test :: AFD 
-test = AFD { states = Data.Set.empty
-           , alphabet = Data.Set.empty
-           , transition = Data.Matrix.fromList 0 0 []
-           , initialState = 0
-           , finalStates = Data.Set.empty
-           }
-
 afd1 = afd [1,2] ['0','1'] foo 1 [2] 
 
 foo :: (Int,Int) -> Int
