@@ -1,5 +1,12 @@
 --Functions for AFN
 
+module AFN
+( afn
+, accept
+, compute
+, nextState
+)where
+
 import Data.Set
 import Data.Matrix
 import Data.List
@@ -70,7 +77,3 @@ foo (x,y)
   | x == 4 && y == 3 = Nothing
 
 afn1 = afn [1,2,3,4] ['0','1'] foo 1 [4] 
-
---compute :: AFD -> [Char] -> Bool
---compute afd chain = accept afd $ last xs
---  where xs = Data.List.map (nextState afd $ initialState afd) chain
