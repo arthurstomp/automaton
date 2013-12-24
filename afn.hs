@@ -2,9 +2,7 @@
 
 module AFN
 ( afn
-, accept
 , compute
-, nextState
 )where
 
 import Data.Set

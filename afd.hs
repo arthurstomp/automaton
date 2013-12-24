@@ -4,6 +4,8 @@ import Data.Set
 import Data.Matrix
 import Data.List
 
+import qualified AFN as AFN
+
 data AFD = AFD { states :: Set Int
                  , alphabet :: Set Char
                  , transition :: Matrix Int
