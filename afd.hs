@@ -3,8 +3,8 @@
 import Data.Set
 import Data.Matrix
 import Data.List
-
 import qualified AFN as AFN
+import Prelude hiding (map)
 
 data AFD = AFD { states :: Set Int
                  , alphabet :: Set Char
@@ -36,6 +36,17 @@ compute :: AFD -> Int -> [Char] -> Bool
 compute afd cs [] = accept afd cs
 compute afd cs (x:xs) = compute afd ns xs
   where ns = nextState afd cs x
+
+
+--afdFromAFN :: AFN.AFN -> AFD
+--afdFromAFN afn = afd1
+
+
+powerset s
+    | s == empty = singleton empty
+    | otherwise = Data.Set.map (Data.Set.insert x) pxs `Data.Set.union` pxs
+      where (x, xs) = deleteFindMin s
+            pxs = powerset xs
 
 afd1 = afd [1,2] ['0','1'] foo 1 [2] 
 

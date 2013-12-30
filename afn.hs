@@ -3,6 +3,8 @@
 module AFN
 ( afn
 , compute
+, afn1
+, states
 )where
 
 import Data.Set
