@@ -3,63 +3,51 @@
 import Data.Set
 import Data.Matrix
 import Data.List
+import Data.Maybe
 import qualified AFN as AFN
 import Prelude hiding (map)
 
-data AFD = AFD { states :: Set Int
-                 , alphabet :: Set Char
-                 , transition :: Matrix Int
-                 , initialState :: Int
-                 , finalStates :: Set Int
+data AFD = AFD { states :: Set (Set Int)
+                 , alphabet :: [Char]
+                 , transition :: Matrix (Set Int)
+                 , initialState :: Set Int
+                 , finalStates :: Set (Set Int)
                  } deriving (Show)
 
-afd :: [Int] -> [Char] -> ((Int,Int) -> Int) -> Int -> [Int] -> AFD 
-afd s a ft is fs = AFD { states = Data.Set.fromList s
-                       , alphabet = Data.Set.fromList a
+afd :: [Set Int] -> [Char] -> Matrix (Set Int)-> Set Int -> [Set Int] -> AFD 
+afd s a t is fs = AFD { states = Data.Set.fromList s
+                       , alphabet = a
                        , transition = t
                        , initialState = is
                        , finalStates = (Data.Set.fromList fs)
                        }
-  where t = Data.Matrix.matrix (length s) (length a) $ ft
 
-accept :: AFD -> Int -> Bool
-accept afd cs = Data.Set.member cs $ finalStates afd
+accept :: AFD -> Set Int -> Bool
+accept afd cs = Data.Set.member (cs) $ finalStates afd
 
-nextState :: AFD -> Int -> Char -> Int
+nextState :: AFD -> Set Int -> Char -> Set Int
 nextState afd cs t = do 
-  case Data.List.elemIndex t $ toAscList $ alphabet afd of
-    Just n -> m Data.Matrix.! (cs,n+1)
-    Nothing -> -1
+  case Data.List.elemIndex t $ alphabet afd of
+    Just n -> m Data.Matrix.! (ics,n+1)
+    Nothing -> Data.Set.singleton (-1)
   where m = transition afd
+        ics = (Data.Maybe.fromJust $ Data.List.elemIndex cs $ Data.Set.toAscList $ states afd) + 1
 
-compute :: AFD -> Int -> [Char] -> Bool
+compute :: AFD -> Set Int -> [Char] -> Bool
 compute afd cs [] = accept afd cs
 compute afd cs (x:xs) = compute afd ns xs
   where ns = nextState afd cs x
 
+afd1 = afd s a t is fs
+  where s = [Data.Set.singleton 1,Data.Set.singleton 2]
+        a = ['0','1']
+        t = mountMatrix ss a foo
+        is = Data.Set.singleton 1
+        fs = [Data.Set.singleton 2] 
+        ss = Data.Set.fromList s
 
---afdFromAFN :: AFN.AFN -> AFD
---afdFromAFN afn = afd1
-
-
-powerset s
-    | s == empty = singleton empty
-    | otherwise = Data.Set.map (Data.Set.insert x) pxs `Data.Set.union` pxs
-      where (x, xs) = deleteFindMin s
-            pxs = powerset xs
-
-afd1 = afd [1,2] ['0','1'] foo 1 [2] 
-
-foo :: (Int,Int) -> Int
-foo (x,y) 
-  | x == 1 && y == 1 = 1
-  | x == 1 && y == 2 = 2
-  | x == 2 && y == 1 = 1
-  | x == 2 && y == 2 = 2
-  | otherwise = 0
-
-test :: (Set Int, Char) -> Set Int
-test (cs, s)
+foo :: (Set Int, Char) -> Set Int
+foo (cs, s)
   | cs == Data.Set.singleton 1 && s == '0' = Data.Set.singleton 1
   | cs == Data.Set.singleton 1 && s == '1' = Data.Set.singleton 2
   | cs == Data.Set.singleton 2 && s == '0' = Data.Set.singleton 1
