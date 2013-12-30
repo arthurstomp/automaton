@@ -57,3 +57,18 @@ foo (x,y)
   | x == 2 && y == 1 = 1
   | x == 2 && y == 2 = 2
   | otherwise = 0
+
+test :: (Set Int, Char) -> Set Int
+test (cs, s)
+  | cs == Data.Set.singleton 1 && s == '0' = Data.Set.singleton 1
+  | cs == Data.Set.singleton 1 && s == '1' = Data.Set.singleton 2
+  | cs == Data.Set.singleton 2 && s == '0' = Data.Set.singleton 1
+  | cs == Data.Set.singleton 2 && s == '1' = Data.Set.singleton 2
+
+mountMatrix :: Set (Set Int) -> [Char] -> ((Set Int, Char) -> Set Int) -> Matrix (Set Int)
+mountMatrix sets s foo = Data.Matrix.fromLists [possibleTransitions st s foo | st <- e]
+  where e = Data.Set.toAscList sets
+
+possibleTransitions :: Set Int -> [Char] -> ((Set Int, Char) -> Set Int) -> [Set Int]
+possibleTransitions cs s foo = [foo(cs,c)| c <- s]
+
