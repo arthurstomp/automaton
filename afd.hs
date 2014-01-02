@@ -38,6 +38,13 @@ compute afd cs [] = accept afd cs
 compute afd cs (x:xs) = compute afd ns xs
   where ns = nextState afd cs x
 
+mountMatrix :: Set (Set Int) -> [Char] -> ((Set Int, Char) -> Set Int) -> Matrix (Set Int)
+mountMatrix sets s foo = Data.Matrix.fromLists [possibleTransitions st s foo | st <- e]
+  where e = Data.Set.toAscList sets
+
+possibleTransitions :: Set Int -> [Char] -> ((Set Int, Char) -> Set Int) -> [Set Int]
+possibleTransitions cs s foo = [foo(cs,c)| c <- s]
+
 afd1 = afd s a t is fs
   where s = [Data.Set.singleton 1,Data.Set.singleton 2]
         a = ['0','1']
@@ -53,10 +60,18 @@ foo (cs, s)
   | cs == Data.Set.singleton 2 && s == '0' = Data.Set.singleton 1
   | cs == Data.Set.singleton 2 && s == '1' = Data.Set.singleton 2
 
-mountMatrix :: Set (Set Int) -> [Char] -> ((Set Int, Char) -> Set Int) -> Matrix (Set Int)
-mountMatrix sets s foo = Data.Matrix.fromLists [possibleTransitions st s foo | st <- e]
-  where e = Data.Set.toAscList sets
+-- Parse a AFN to AFD
+afnToAFDStates :: AFN.AFN -> Set (Set Int)
+afnToAFDStates afn = powerset $ AFN.states afn
 
-possibleTransitions :: Set Int -> [Char] -> ((Set Int, Char) -> Set Int) -> [Set Int]
-possibleTransitions cs s foo = [foo(cs,c)| c <- s]
+afnToAFDFinalStates :: AFN.AFN -> Set (Set Int)
+afnToAFDFinalStates afn = Data.Set.fromList [y | x <- Data.Set.elems $ AFN.finalStates afn, y <- Data.Set.elems $ afnToAFDStates afn, Data.Set.member x y]
 
+afnToAFDInitialState :: AFN.AFN -> Set Int
+afnToAFDInitialState afn = Data.Set.singleton $ AFN.initialState afn
+
+powerset s
+    | s == empty = Data.Set.singleton empty
+    | otherwise = Data.Set.map (Data.Set.insert x) pxs `Data.Set.union` pxs
+      where (x, xs) = Data.Set.deleteFindMin s
+            pxs = powerset xs

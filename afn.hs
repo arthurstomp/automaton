@@ -2,9 +2,14 @@
 
 module AFN
 ( afn
+, AFN
 , compute
 , afn1
 , states
+, alphabet
+, initialState
+, finalStates
+, transition
 )where
 
 import Data.Set
