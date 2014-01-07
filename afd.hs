@@ -70,6 +70,15 @@ afnToAFDFinalStates afn = Data.Set.fromList [y | x <- Data.Set.elems $ AFN.final
 afnToAFDInitialState :: AFN.AFN -> Set Int
 afnToAFDInitialState afn = Data.Set.singleton $ AFN.initialState afn
 
+--afnToAFDTransition :: AFN.AFN -> Matrix ( Set Int )
+--afnToAFDTransition afn = 
+--  where ns = afnToAFDStates afn
+
+--transitionsOfState :: AFN.AFN -> Set Int -> [Char] -> [Set Int]
+--transitionsOfState afn s a = 
+--  where afnAscStates = Data.Set.toAscList $ AFN.states afn
+--        is = Data.Maybe.fromJust (Data.List.elemIndex s afnAscStates)
+
 powerset s
     | s == empty = Data.Set.singleton empty
     | otherwise = Data.Set.map (Data.Set.insert x) pxs `Data.Set.union` pxs
