@@ -7,19 +7,19 @@ import Data.Maybe
 import qualified AFN as AFN
 import Powerset
 
-data AFD = AFD { states :: Set (Set Int)
+data AFD = AFD { states :: [Set Int]
                  , alphabet :: [Char]
                  , transition :: Matrix (Set Int)
                  , initialState :: Set Int
-                 , finalStates :: Set (Set Int)
+                 , finalStates :: [Set Int]
                  } deriving (Show)
 
 afd :: [Set Int] -> [Char] -> Matrix (Set Int)-> Set Int -> [Set Int] -> AFD 
-afd s a t is fs = AFD { states = Data.Set.fromList s
+afd s a t is fs = AFD { states = s
                        , alphabet = a
                        , transition = t
                        , initialState = is
-                       , finalStates = (Data.Set.fromList fs)
+                       , finalStates = fs
                        }
 
 compute :: AFD -> Set Int -> [Char] -> Bool
@@ -28,7 +28,7 @@ compute afd cs (x:xs) = compute afd ns xs
   where ns = nextState afd cs x
   
 accept :: AFD -> Set Int -> Bool
-accept afd cs = Data.Set.member (cs) $ finalStates afd
+accept afd cs = Data.List.elem (cs) $ finalStates afd
 
 nextState :: AFD -> Set Int -> Char -> Set Int
 nextState afd cs t = do 
@@ -36,7 +36,7 @@ nextState afd cs t = do
     Just n -> m Data.Matrix.! (ics,n+1)
     Nothing -> Data.Set.singleton (-1)
   where m = transition afd
-        ics = (Data.Maybe.fromJust $ Data.List.elemIndex cs $ Data.Set.toAscList $ states afd) + 1
+        ics = (Data.Maybe.fromJust $ Data.List.elemIndex cs $ states afd) + 1
 
 -- Parse a AFN to AFD
 afnToAFDStates :: AFN.AFN -> Set (Set Int)
