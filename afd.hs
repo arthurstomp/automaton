@@ -22,6 +22,11 @@ afd s a t is fs = AFD { states = Data.Set.fromList s
                        , finalStates = (Data.Set.fromList fs)
                        }
 
+compute :: AFD -> Set Int -> [Char] -> Bool
+compute afd cs [] = accept afd cs
+compute afd cs (x:xs) = compute afd ns xs
+  where ns = nextState afd cs x
+  
 accept :: AFD -> Set Int -> Bool
 accept afd cs = Data.Set.member (cs) $ finalStates afd
 
@@ -32,33 +37,6 @@ nextState afd cs t = do
     Nothing -> Data.Set.singleton (-1)
   where m = transition afd
         ics = (Data.Maybe.fromJust $ Data.List.elemIndex cs $ Data.Set.toAscList $ states afd) + 1
-
-compute :: AFD -> Set Int -> [Char] -> Bool
-compute afd cs [] = accept afd cs
-compute afd cs (x:xs) = compute afd ns xs
-  where ns = nextState afd cs x
-
-mountMatrix :: Set (Set Int) -> [Char] -> ((Set Int, Char) -> Set Int) -> Matrix (Set Int)
-mountMatrix sets s foo = Data.Matrix.fromLists [possibleTransitions st s foo | st <- e]
-  where e = Data.Set.toAscList sets
-
-possibleTransitions :: Set Int -> [Char] -> ((Set Int, Char) -> Set Int) -> [Set Int]
-possibleTransitions cs s foo = [foo(cs,c)| c <- s]
-
-afd1 = afd s a t is fs
-  where s = [Data.Set.singleton 1,Data.Set.singleton 2]
-        a = ['0','1']
-        t = mountMatrix ss a foo
-        is = Data.Set.singleton 1
-        fs = [Data.Set.singleton 2] 
-        ss = Data.Set.fromList s
-
-foo :: (Set Int, Char) -> Set Int
-foo (cs, s)
-  | cs == Data.Set.singleton 1 && s == '0' = Data.Set.singleton 1
-  | cs == Data.Set.singleton 1 && s == '1' = Data.Set.singleton 2
-  | cs == Data.Set.singleton 2 && s == '0' = Data.Set.singleton 1
-  | cs == Data.Set.singleton 2 && s == '1' = Data.Set.singleton 2
 
 -- Parse a AFN to AFD
 afnToAFDStates :: AFN.AFN -> Set (Set Int)
@@ -84,3 +62,26 @@ powerset s
     | otherwise = Data.Set.map (Data.Set.insert x) pxs `Data.Set.union` pxs
       where (x, xs) = Data.Set.deleteFindMin s
             pxs = powerset xs
+
+-- Testing Area
+afd1 = afd s a t is fs
+  where s = [Data.Set.singleton 1,Data.Set.singleton 2]
+        a = ['0','1']
+        t = mountMatrix ss a foo
+        is = Data.Set.singleton 1
+        fs = [Data.Set.singleton 2] 
+        ss = Data.Set.fromList s
+
+mountMatrix :: Set (Set Int) -> [Char] -> ((Set Int, Char) -> Set Int) -> Matrix (Set Int)
+mountMatrix sets s foo = Data.Matrix.fromLists [possibleTransitions st s foo | st <- e]
+  where e = Data.Set.toAscList sets
+
+possibleTransitions :: Set Int -> [Char] -> ((Set Int, Char) -> Set Int) -> [Set Int]
+possibleTransitions cs s foo = [foo(cs,c)| c <- s]
+
+foo :: (Set Int, Char) -> Set Int
+foo (cs, s)
+  | cs == Data.Set.singleton 1 && s == '0' = Data.Set.singleton 1
+  | cs == Data.Set.singleton 1 && s == '1' = Data.Set.singleton 2
+  | cs == Data.Set.singleton 2 && s == '0' = Data.Set.singleton 1
+  | cs == Data.Set.singleton 2 && s == '1' = Data.Set.singleton 2

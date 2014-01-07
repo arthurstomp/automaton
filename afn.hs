@@ -1,16 +1,16 @@
 --Functions for AFN
 
---module AFN
---( afn
---, AFN
---, compute
---, afn1
---, states
---, alphabet
---, initialState
---, finalStates
---, transition
---)where
+module AFN
+( afn
+, AFN
+, compute
+, afn1
+, states
+, alphabet
+, initialState
+, finalStates
+, transition
+)where
 
 import Data.Set
 import Data.Matrix
@@ -33,14 +33,14 @@ afn s a t is fs = AFN { states = s
                        }
   where alpha = Data.List.insert 'E' a
 
-accept :: AFN -> Set Int -> Bool
-accept afn cs  = True `elem` acceptance 
-  where acceptance = [ Data.List.elem x $ finalStates afn | x <- Data.Set.elems cs] 
-
 compute :: AFN -> Set Int -> [Char] -> Bool
 compute afn cs [] = accept afn cs
 compute afn cs (x:xs) = compute afn ns xs
   where ns = nextState afn cs x
+
+accept :: AFN -> Set Int -> Bool
+accept afn cs  = True `elem` acceptance 
+  where acceptance = [ Data.List.elem x $ finalStates afn | x <- Data.Set.elems cs] 
 
 nextState :: AFN -> Set Int -> Char -> Set Int
 nextState afn cs t = Data.Set.union (partialNextState afn cs t) (partialNextState afn cs 'E')
