@@ -5,7 +5,7 @@ import Data.Matrix
 import Data.List
 import Data.Maybe
 import qualified AFN as AFN
-import Prelude hiding (map)
+import Powerset
 
 data AFD = AFD { states :: Set (Set Int)
                  , alphabet :: [Char]
@@ -40,10 +40,10 @@ nextState afd cs t = do
 
 -- Parse a AFN to AFD
 afnToAFDStates :: AFN.AFN -> Set (Set Int)
-afnToAFDStates afn = powerset $ AFN.states afn
+afnToAFDStates afn = powerset $ Data.Set.fromList $ AFN.states afn
 
 afnToAFDFinalStates :: AFN.AFN -> Set (Set Int)
-afnToAFDFinalStates afn = Data.Set.fromList [y | x <- Data.Set.elems $ AFN.finalStates afn, y <- Data.Set.elems $ afnToAFDStates afn, Data.Set.member x y]
+afnToAFDFinalStates afn = Data.Set.fromList [y | x <- AFN.finalStates afn, y <- Data.Set.elems $ afnToAFDStates afn, Data.Set.member x y]
 
 afnToAFDInitialState :: AFN.AFN -> Set Int
 afnToAFDInitialState afn = Data.Set.singleton $ AFN.initialState afn
@@ -56,12 +56,6 @@ afnToAFDInitialState afn = Data.Set.singleton $ AFN.initialState afn
 --transitionsOfState afn s a = 
 --  where afnAscStates = Data.Set.toAscList $ AFN.states afn
 --        is = Data.Maybe.fromJust (Data.List.elemIndex s afnAscStates)
-
-powerset s
-    | s == empty = Data.Set.singleton empty
-    | otherwise = Data.Set.map (Data.Set.insert x) pxs `Data.Set.union` pxs
-      where (x, xs) = Data.Set.deleteFindMin s
-            pxs = powerset xs
 
 -- Testing Area
 afd1 = afd s a t is fs
