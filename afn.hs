@@ -10,6 +10,8 @@ module AFN
 , initialState
 , finalStates
 , transition
+, nextState
+, transitiveClosure
 )where
 
 import Data.Set
@@ -43,7 +45,10 @@ accept afn cs  = True `elem` acceptance
   where acceptance = [ Data.List.elem x $ finalStates afn | x <- Data.Set.elems cs] 
 
 nextState :: AFN -> Set Int -> Char -> Set Int
-nextState afn cs t = Data.Set.union (partialNextState afn cs t) (partialNextState afn cs 'E')
+nextState afn cs t = Data.Set.union (partialNextState afn cs t) (transitiveClosure afn cs)
+
+transitiveClosure :: AFN -> Set Int -> Set Int
+transitiveClosure afn cs = partialNextState afn cs 'E'
 
 partialNextState :: AFN -> Set Int -> Char -> Set Int
 partialNextState afn cs c = Data.Set.unions [transitionFromState afn x c | x <- Data.Set.elems cs]

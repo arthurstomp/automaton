@@ -39,14 +39,20 @@ nextState afd cs t = do
         ics = (Data.Maybe.fromJust $ Data.List.elemIndex cs $ states afd) + 1
 
 -- Parse a AFN to AFD
-afnToAFDStates :: AFN.AFN -> Set (Set Int)
-afnToAFDStates afn = powerset $ Data.Set.fromList $ AFN.states afn
+afnToAFDStates :: AFN.AFN -> [Set Int]
+afnToAFDStates afn = Data.Set.toAscList $ powerset setAFNStates
+  where setAFNStates = Data.Set.fromList $ AFN.states afn
 
-afnToAFDFinalStates :: AFN.AFN -> Set (Set Int)
-afnToAFDFinalStates afn = Data.Set.fromList [y | x <- AFN.finalStates afn, y <- Data.Set.elems $ afnToAFDStates afn, Data.Set.member x y]
+afnToAFDAlphabet :: AFN.AFN -> [Char]
+afnToAFDAlphabet afn = Data.List.delete 'E' afnAlphabet
+  where afnAlphabet = AFN.alphabet afn
+
+afnToAFDFinalStates :: AFN.AFN -> [Set Int]
+afnToAFDFinalStates afn = [y | x <- AFN.finalStates afn, y <- afnToAFDStates afn, Data.Set.member x y]
 
 afnToAFDInitialState :: AFN.AFN -> Set Int
-afnToAFDInitialState afn = Data.Set.singleton $ AFN.initialState afn
+afnToAFDInitialState afn = AFN.transitiveClosure afn $ Data.Set.singleton is
+  where is = AFN.initialState afn
 
 --afnToAFDTransition :: AFN.AFN -> Matrix ( Set Int )
 --afnToAFDTransition afn = 
@@ -65,6 +71,8 @@ afd1 = afd s a t is fs
         is = Data.Set.singleton 1
         fs = [Data.Set.singleton 2] 
         ss = Data.Set.fromList s
+
+afn1 = AFN.afn1
 
 mountMatrix :: Set (Set Int) -> [Char] -> ((Set Int, Char) -> Set Int) -> Matrix (Set Int)
 mountMatrix sets s foo = Data.Matrix.fromLists [possibleTransitions st s foo | st <- e]
