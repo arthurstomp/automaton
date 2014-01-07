@@ -1,3 +1,6 @@
+module Powerset
+(powerset
+)where
 import Prelude hiding (map)
 powerset s
     | s == empty = singleton empty
