@@ -38,30 +38,47 @@ nextState afd cs t = do
   where m = transition afd
         ics = (Data.Maybe.fromJust $ Data.List.elemIndex cs $ states afd) + 1
 
--- Parse a AFN to AFD
-afnToAFDStates :: AFN.AFN -> [Set Int]
-afnToAFDStates afn = Data.Set.toAscList $ powerset setAFNStates
+-- turn a AFN into AFD
+turn :: AFN.AFN -> AFD
+turn afn = afd s a t is fs
+  where s = turnStates afn
+        a = turnAlphabet afn
+        t = turnTransition afn
+        is = turnInitialState afn
+        fs = turnFinalStates afn
+
+turnStates :: AFN.AFN -> [Set Int]
+turnStates afn = Data.Set.toAscList $ powerset setAFNStates
   where setAFNStates = Data.Set.fromList $ AFN.states afn
 
-afnToAFDAlphabet :: AFN.AFN -> [Char]
-afnToAFDAlphabet afn = Data.List.delete 'E' afnAlphabet
+turnAlphabet :: AFN.AFN -> [Char]
+turnAlphabet afn = Data.List.delete 'E' afnAlphabet
   where afnAlphabet = AFN.alphabet afn
 
-afnToAFDFinalStates :: AFN.AFN -> [Set Int]
-afnToAFDFinalStates afn = [y | x <- AFN.finalStates afn, y <- afnToAFDStates afn, Data.Set.member x y]
+turnTransition :: AFN.AFN -> Matrix ( Set Int )
+turnTransition afn = Data.Matrix.fromLists [transitionsOfAFNState afn s | s <- ns]
+  where ns = turnStates afn
 
-afnToAFDInitialState :: AFN.AFN -> Set Int
-afnToAFDInitialState afn = AFN.transitiveClosure afn $ Data.Set.singleton is
+turnInitialState :: AFN.AFN -> Set Int
+turnInitialState afn = AFN.transitiveClosure afn $ Data.Set.singleton is
   where is = AFN.initialState afn
 
---afnToAFDTransition :: AFN.AFN -> Matrix ( Set Int )
---afnToAFDTransition afn = 
---  where ns = afnToAFDStates afn
+turnFinalStates :: AFN.AFN -> [Set Int]
+turnFinalStates afn = [y | x <- AFN.finalStates afn, y <- turnStates afn, Data.Set.member x y]
 
---transitionsOfState :: AFN.AFN -> Set Int -> [Char] -> [Set Int]
---transitionsOfState afn s a = 
---  where afnAscStates = Data.Set.toAscList $ AFN.states afn
---        is = Data.Maybe.fromJust (Data.List.elemIndex s afnAscStates)
+transitionsOfAFNState :: AFN.AFN -> Set Int -> [Set Int]
+transitionsOfAFNState afn s = [turnNextState afn s c | c <- alpha] 
+  where alpha = turnAlphabet afn
+
+turnNextState :: AFN.AFN -> Set Int -> Char -> Set Int
+turnNextState afn cs c = Data.Set.unions [turnTransitionsFromAFNState afn x c | x <- Data.Set.elems cs]
+
+turnTransitionsFromAFNState :: AFN.AFN -> Int -> Char -> Set Int
+turnTransitionsFromAFNState afn cs t 
+  | ns == Data.Set.empty = Data.Set.empty
+  | ns /= Data.Set.empty = ns
+  where it = AFN.indexTransition afn t
+        ns = (AFN.transition afn) Data.Matrix.! (cs,it+1)
 
 -- Testing Area
 afd1 = afd s a t is fs
@@ -83,7 +100,9 @@ possibleTransitions cs s foo = [foo(cs,c)| c <- s]
 
 foo :: (Set Int, Char) -> Set Int
 foo (cs, s)
-  | cs == Data.Set.singleton 1 && s == '0' = Data.Set.singleton 1
-  | cs == Data.Set.singleton 1 && s == '1' = Data.Set.singleton 2
-  | cs == Data.Set.singleton 2 && s == '0' = Data.Set.singleton 1
-  | cs == Data.Set.singleton 2 && s == '1' = Data.Set.singleton 2
+  | cs == Data.Set.singleton 1 && s == '0' = Data.Set.singleton 2
+  | cs == Data.Set.singleton 1 && s == '1' = Data.Set.singleton 1
+  | cs == Data.Set.singleton 2 && s == '0' = Data.Set.singleton 3
+  | cs == Data.Set.singleton 2 && s == '1' = Data.Set.singleton 1
+  | cs == Data.Set.singleton 3 && s == '0' = Data.Set.singleton 3
+  | cs == Data.Set.singleton 3 && s == '1' = Data.Set.singleton 1

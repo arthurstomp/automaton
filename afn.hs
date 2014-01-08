@@ -11,7 +11,10 @@ module AFN
 , finalStates
 , transition
 , nextState
+, partialNextState
 , transitiveClosure
+, transitionFromState
+, indexTransition 
 )where
 
 import Data.Set
@@ -53,9 +56,6 @@ transitiveClosure afn cs = partialNextState afn cs 'E'
 partialNextState :: AFN -> Set Int -> Char -> Set Int
 partialNextState afn cs c = Data.Set.unions [transitionFromState afn x c | x <- Data.Set.elems cs]
 
-prettyInitialState :: AFN -> Set Int
-prettyInitialState afn = Data.Set.singleton $ initialState afn
-
 transitionFromState :: AFN -> Int -> Char -> Set Int
 transitionFromState afn cs t
   | ns == Data.Set.empty = Data.Set.singleton cs 
@@ -68,6 +68,9 @@ indexTransition afn t = Data.Maybe.fromJust $ Data.List.elemIndex t a
   where a = alphabet afn
 
 -- Testing Area
+prettyInitialState :: AFN -> Set Int
+prettyInitialState afn = Data.Set.singleton $ initialState afn
+
 mountMatrix :: [Int] -> [Char] -> ((Int,Char) -> Set Int) -> Matrix (Set Int)
 mountMatrix s a foo = Data.Matrix.fromLists [possibleTransitions x a foo | x <- s]
 
