@@ -156,8 +156,9 @@ star af = afn s a t is fs
         fs = starFinalState af
 
 starStates :: AFN -> [Int]
-starStates afn = [0] Data.List.++ s
+starStates afn = s Data.List.++ [ls]
   where s = states afn
+        ls = (Data.List.last s) + 1
 
 starAlphabet :: AFN -> [Char]
 starAlphabet afn = alphabet afn
@@ -180,19 +181,20 @@ finalStatesToNewInitialState :: AFN -> Matrix (Set Int) -> [Int] -> Matrix (Set 
 finalStatesToNewInitialState afn t [x] = Data.Matrix.setElem nct (x+1,ie+1) t
   where ie = indexTransition afn 'E'
         ct = Data.Matrix.getElem x (ie+1) t 
-        nct = Data.Set.insert 0 ct
+        nct = Data.Set.insert nls ct
+        nls = 1 + (Data.List.last $ states afn)
 finalStatesToNewInitialState afn t (x:xs) = finalStatesToNewInitialState afn nt xs
   where ie = indexTransition afn 'E'
         ct = Data.Matrix.getElem x (ie+1) t 
-        nct = Data.Set.insert 0 ct
+        nct = Data.Set.insert nls ct
         nt = Data.Matrix.setElem nct (x+1,ie+1) t
-        
+        nls = 1 + (Data.List.last $ states afn)
 
 starInitialState :: AFN -> Int
-starInitialState afn = 0
+starInitialState afn = 1 + (Data.List.last $ states afn)
 
 starFinalState :: AFN -> [Int]
-starFinalState afn = [0]
+starFinalState afn = [1 + (Data.List.last $ states afn)]
 
 -- Testing Area
 prettyInitialState :: AFN -> Set Int
