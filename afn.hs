@@ -95,12 +95,12 @@ or afn1 afn2 = afn s a t is fs
         fs = orFinalStates afn1 afn2
 
 orStates :: AFN -> AFN -> [Int]
-orStates afn1 afn2 = nis : (s1 Data.List.++ ns2)
+orStates afn1 afn2 = (s1 Data.List.++ ns2) Data.List.++ [nis]
   where s1 = states afn1
         s2 = states afn2
         l = Data.List.last s1
         ns2 = Data.List.map (l + ) s2
-        nis = 0
+        nis = (Data.List.last ns2) + 1
 
 orAlphabet afn1 afn2 = alpha
   where a1 = alphabet afn1
@@ -116,8 +116,8 @@ removeDuplicates = rdHelper []
           | otherwise = rdHelper (seen Data.List.++ [x]) xs
 
 orTransition :: AFN -> AFN -> Matrix ( Set Int)
-orTransition afn1 afn2 = Data.Matrix.fromLists $ [firstRow] Data.List.++ afn1Rows Data.List.++ afn2Rows
-  where firstRow = [ if c /= 'E' then Data.Set.empty else Data.Set.fromList [is1,is2] | c <- alpha]
+orTransition afn1 afn2 = Data.Matrix.fromLists $  afn1Rows Data.List.++ afn2Rows Data.List.++ [lastRow]
+  where lastRow = [ if c /= 'E' then Data.Set.empty else Data.Set.fromList [is1,is2] | c <- alpha]
         row1 s = [orTransitionFromState afn1 s c | c <- alpha ]
         row2 s = [(Data.Set.map (l+) $ orTransitionFromState afn2 s c) | c <- alpha ]
         afn1Rows = [row1 s | s <- states afn1]
@@ -137,7 +137,10 @@ orTransitionFromState afn cs t
         ns = (transition afn) Data.Matrix.! (is+1,it+1)
 
 orInitialState :: AFN -> AFN -> Int
-orInitialState afn1 afn2 = 0
+orInitialState afn1 afn2 = lnfs2 + 1
+  where l = Data.List.last $ states afn1
+        nfs2 = Data.List.map (l + ) $ finalStates afn2
+        lnfs2 = Data.List.last nfs2
 
 orFinalStates :: AFN -> AFN -> [Int]
 orFinalStates afn1 afn2 = fs1 Data.List.++ nfs2
@@ -172,7 +175,7 @@ starTransition afn = ft
         ft = finalStatesToNewInitialState afn nt ifs
 
 addNewInitialState :: Matrix (Set Int) -> [Char] -> Matrix (Set Int)
-addNewInitialState t a = Data.Matrix.fromLists (nr : rt)
+addNewInitialState t a = Data.Matrix.fromLists (rt Data.List.++ [nr])
   where st = Data.Matrix.nrows t
         rt = [Data.Vector.toList (Data.Matrix.getRow x t) | x <- [1..st]]
         nr = [if c == 'E' then Data.Set.singleton 1 else Data.Set.empty | c <- a]
