@@ -122,8 +122,8 @@ removeDuplicates = rdHelper []
 orTransition :: AFN -> AFN -> Matrix ( Set Int)
 orTransition afn1 afn2 = Data.Matrix.fromLists $  afn1Rows Data.List.++ afn2Rows Data.List.++ [lastRow]
   where lastRow = [ if c /= 'E' then Data.Set.empty else Data.Set.fromList [is1,is2] | c <- alpha]
-        row1 s = [orTransitionFromState afn1 s c | c <- alpha ]
-        row2 s = [(Data.Set.map (l+) $ orTransitionFromState afn2 s c) | c <- alpha ]
+        row1 s = [operationTransitionFromState afn1 s c | c <- alpha ]
+        row2 s = [(Data.Set.map (l+) $ operationTransitionFromState afn2 s c) | c <- alpha ]
         afn1Rows = [row1 s | s <- states afn1]
         afn2Rows = [row2 s | s <- states afn2]
         alpha = orAlphabet afn1 afn2
@@ -131,8 +131,8 @@ orTransition afn1 afn2 = Data.Matrix.fromLists $  afn1Rows Data.List.++ afn2Rows
         l = (Data.List.last $ states afn1)
         is2 = (initialState afn2) + l
 
-orTransitionFromState :: AFN -> Int -> Char -> Set Int
-orTransitionFromState afn cs t
+operationTransitionFromState :: AFN -> Int -> Char -> Set Int
+operationTransitionFromState afn cs t
   | is == -1 || it == -1 = Data.Set.empty
   | ns == Data.Set.empty = Data.Set.empty
   | ns /= Data.Set.empty = ns
@@ -153,6 +153,48 @@ orFinalStates afn1 afn2 = fs1 Data.List.++ nfs2
         fs1 = finalStates afn1
 
 --  Concatenation
+concat ::  AFN -> AFN -> AFN
+concat afn1 afn2 = afn s a t is fs
+  where s = concatStates afn1 afn2
+        a = concatAlphabet afn1 afn2
+        t = concatTransition afn1 afn2
+        is = concatInitialState afn1 afn2
+        fs = concatFinalStates afn1 afn2
+
+concatStates :: AFN -> AFN -> [Int] 
+concatStates afn1 afn2 = s1 Data.List.++ ns2 
+  where s1 = states afn1
+        s2 = states afn2
+        l = Data.List.last s1
+        ns2 = Data.List.map (l + ) s2
+
+concatAlphabet :: AFN -> AFN -> [Char]
+concatAlphabet afn1 afn2 = alpha
+  where a1 = alphabet afn1
+        a2 = alphabet afn2
+        a = Data.List.delete 'E' (removeDuplicates (a1 Data.List.++ a2))
+        alpha = a Data.List.++ "E"
+
+concatTransition :: AFN -> AFN -> Matrix (Set Int)
+concatTransition afn1 afn2 = Data.Matrix.fromLists $  afn1Rows Data.List.++ afn2Rows 
+  where row1 s = [if Data.List.elem s (finalStates afn1) && c == 'E' 
+                  then Data.Set.union (Data.Set.singleton is2) (operationTransitionFromState afn1 s c)
+                  else operationTransitionFromState afn1 s c | c <- alpha ]
+        row2 s = [(Data.Set.map (l+) $ operationTransitionFromState afn2 s c) | c <- alpha ]
+        afn1Rows = [row1 s | s <- states afn1]
+        afn2Rows = [row2 s | s <- states afn2]
+        alpha = orAlphabet afn1 afn2
+        is1 = initialState afn1
+        l = (Data.List.last $ states afn1)
+        is2 = (initialState afn2) + l
+
+concatInitialState :: AFN -> AFN -> Int
+concatInitialState afn1 afn2 = initialState afn1
+
+concatFinalStates :: AFN -> AFN -> [Int]
+concatFinalStates afn1 afn2 = Data.List.map (l+) $ finalStates afn2
+  where l = Data.List.last $ states afn1 
+
 --  Star
 star :: AFN -> AFN
 star af = afn s a t is fs
