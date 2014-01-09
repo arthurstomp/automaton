@@ -49,10 +49,14 @@ accept afn cs  = True `Data.List.elem` acceptance
   where acceptance = [ Data.List.elem x $ finalStates afn | x <- Data.Set.elems cs] 
 
 nextState :: AFN -> Set Int -> Char -> Set Int
-nextState afn cs t = Data.Set.union (partialNextState afn cs t) (transitiveClosure afn cs)
+nextState afn cs t = transitiveClosure afn pns
+  where pns = partialNextState afn cs t
 
 transitiveClosure :: AFN -> Set Int -> Set Int
-transitiveClosure afn cs = Data.Set.union cs $ partialNextState afn cs 'E'
+transitiveClosure afn cs 
+  | partial == cs = partial
+  | partial /= cs = transitiveClosure afn partial
+  where partial = Data.Set.union cs $ partialNextState afn cs 'E'
 
 partialNextState :: AFN -> Set Int -> Char -> Set Int
 partialNextState afn cs c = Data.Set.unions [transitionFromState afn x c | x <- Data.Set.elems cs]
@@ -223,3 +227,9 @@ foo (cs,c)
 
 a = simple 'a'
 b = simple 'b'
+o = AFN.or a b
+p = AFN.or o $ simple 'd'
+
+
+ns1 = nextState p (prettyInitialState p) 'a'
+
