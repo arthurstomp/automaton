@@ -4,7 +4,6 @@ module AFN
 ( afn
 , AFN
 , compute
-, afn1
 , states
 , alphabet
 , initialState
@@ -32,17 +31,18 @@ data AFN = AFN { states :: [Int]
 
 afn :: [Int] -> [Char] -> Matrix (Set Int) -> Int -> [Int] -> AFN
 afn s a t is fs = AFN { states = s
-                       , alphabet = alpha
+                       , alphabet = a
                        , transition = t
                        , initialState = is
                        , finalStates = fs
                        }
-  where alpha = a Data.List.++ "E"
 
 compute :: AFN -> Set Int -> [Char] -> Bool
-compute afn cs [] = accept afn cs
+compute afn cs [] = accept afn csWithTransitiveClosure
+  where csWithTransitiveClosure = transitiveClosure afn cs
 compute afn cs (x:xs) = compute afn ns xs
-  where ns = nextState afn cs x
+  where ns = nextState afn csWithTransitiveClosure x
+        csWithTransitiveClosure = transitiveClosure afn cs
 
 accept :: AFN -> Set Int -> Bool
 accept afn cs  = True `Data.List.elem` acceptance 
@@ -52,13 +52,14 @@ nextState :: AFN -> Set Int -> Char -> Set Int
 nextState afn cs t = Data.Set.union (partialNextState afn cs t) (transitiveClosure afn cs)
 
 transitiveClosure :: AFN -> Set Int -> Set Int
-transitiveClosure afn cs = partialNextState afn cs 'E'
+transitiveClosure afn cs = Data.Set.union cs $ partialNextState afn cs 'E'
 
 partialNextState :: AFN -> Set Int -> Char -> Set Int
 partialNextState afn cs c = Data.Set.unions [transitionFromState afn x c | x <- Data.Set.elems cs]
 
 transitionFromState :: AFN -> Int -> Char -> Set Int
 transitionFromState afn cs t
+  | is == -1 || it == -1 = Data.Set.empty
   | ns == Data.Set.empty = Data.Set.singleton cs 
   | ns /= Data.Set.empty = ns
   where it = indexTransition afn t
@@ -66,17 +67,17 @@ transitionFromState afn cs t
         ns = (transition afn) Data.Matrix.! (is+1,it+1)
 
 indexTransition :: AFN -> Char -> Int
-indexTransition afn t = Data.Maybe.fromJust $ Data.List.elemIndex t a
+indexTransition afn t = Data.Maybe.fromMaybe (-1) $ Data.List.elemIndex t a
   where a = alphabet afn
 
 indexState :: AFN -> Int -> Int
-indexState afn cs = Data.Maybe.fromJust $ Data.List.elemIndex cs s
+indexState afn cs = Data.Maybe.fromMaybe (-1) $ Data.List.elemIndex cs s
   where s = states afn
 
 -- Operations 
 --  Simple
 simple :: Char -> AFN
-simple c =  afn s a t is fs
+simple c =  afn s alpha t is fs
   where s = [1,2]
         a = [c]
         t = Data.Matrix.fromLists [[Data.Set.singleton 2, Data.Set.empty],[Data.Set.empty, Data.Set.empty]]
@@ -85,8 +86,13 @@ simple c =  afn s a t is fs
         alpha = a Data.List.++ "E"
 
 --  Or
---or :: AFN -> AFN -> AFN
---or afn1 afn2 = 
+or :: AFN -> AFN -> AFN
+or afn1 afn2 = afn s a t is fs
+  where s = orStates afn1 afn2
+        a = orAlphabet afn1 afn2
+        t = orTransition afn1 afn2 
+        is = orInitialState afn1 afn2
+        fs = orFinalStates afn1 afn2
 
 orStates :: AFN -> AFN -> [Int]
 orStates afn1 afn2 = nis : (s1 Data.List.++ ns2)
@@ -109,18 +115,29 @@ removeDuplicates = rdHelper []
           | x `Data.List.elem` seen = rdHelper seen xs
           | otherwise = rdHelper (seen Data.List.++ [x]) xs
 
---orTransition :: AFN -> AFN -> Matrix ( Set Int)
---orTransition afn1 afn2 =
---  where t1 = transition afn1
---        t2 = transition afn2
---        st1 = Data.Matrix.nrows t1
---        st2 = Data.Matrix.nrows t2
---        rt1 = [Data.Vector.toList (Data.Matrix.getRow x t1) | x <- [1..st1]]
---        rt2 = [Data.Vector.toList (Data.Matrix.getRow x t2) | x <- [1..st2]]
---        newInitialStateRow = 
-        
+orTransition :: AFN -> AFN -> Matrix ( Set Int)
+orTransition afn1 afn2 = Data.Matrix.fromLists $ [firstRow] Data.List.++ afn1Rows Data.List.++ afn2Rows
+  where firstRow = [ if c /= 'E' then Data.Set.empty else Data.Set.fromList [is1,is2] | c <- alpha]
+        row1 s = [orTransitionFromState afn1 s c | c <- alpha ]
+        row2 s = [(Data.Set.map (l+) $ orTransitionFromState afn2 s c) | c <- alpha ]
+        afn1Rows = [row1 s | s <- states afn1]
+        afn2Rows = [row2 s | s <- states afn2]
+        alpha = orAlphabet afn1 afn2
+        is1 = initialState afn1
+        l = (Data.List.last $ states afn1)
+        is2 = (initialState afn2) + l
 
-orInitialState = 0
+orTransitionFromState :: AFN -> Int -> Char -> Set Int
+orTransitionFromState afn cs t
+  | is == -1 || it == -1 = Data.Set.empty
+  | ns == Data.Set.empty = Data.Set.empty
+  | ns /= Data.Set.empty = ns
+  where it = indexTransition afn t
+        is = indexState afn cs
+        ns = (transition afn) Data.Matrix.! (is+1,it+1)
+
+orInitialState :: AFN -> AFN -> Int
+orInitialState afn1 afn2 = 0
 
 orFinalStates :: AFN -> AFN -> [Int]
 orFinalStates afn1 afn2 = fs1 Data.List.++ nfs2
@@ -143,7 +160,7 @@ starStates afn = [0] Data.List.++ s
   where s = states afn
 
 starAlphabet :: AFN -> [Char]
-starAlphabet afn = Data.List.delete 'E' (alphabet afn)
+starAlphabet afn = alphabet afn
 
 starTransition :: AFN -> Matrix (Set Int)
 starTransition afn = ft
@@ -199,15 +216,5 @@ foo (cs,c)
   | cs == 3 && c == '1' = Data.Set.empty
   | cs == 3 && c == 'E' = Data.Set.empty
 
-afn1 = afn s a m is fs
-  where s = [1,2,3]
-        a = ['0','1']
-        m = mountMatrix s alpha foo
-        is = 1
-        fs = [3]
-        alpha = a Data.List.++ "E"
-
-is = prettyInitialState afn1
-ns1 = nextState afn1 is '0'
-ns2 = nextState afn1 ns1 '0'
-ns3 = nextState afn1 ns2 '1'
+a = simple 'a'
+b = simple 'b'
