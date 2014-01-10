@@ -221,15 +221,16 @@ starTransition :: AFN -> Matrix (Set Int)
 starTransition afn = ft
   where t = transition afn
         alpha = alphabet afn
-        nt = addNewInitialState t alpha
+        nt = addNewInitialState afn t alpha
         ifs = [indexState afn x | x <- finalStates afn]
         ft = finalStatesToNewInitialState afn nt ifs
 
-addNewInitialState :: Matrix (Set Int) -> [Char] -> Matrix (Set Int)
-addNewInitialState t a = Data.Matrix.fromLists (rt Data.List.++ [nr])
+addNewInitialState :: AFN -> Matrix (Set Int) -> [Char] -> Matrix (Set Int)
+addNewInitialState afn t a = Data.Matrix.fromLists (rt Data.List.++ [nr])
   where st = Data.Matrix.nrows t
         rt = [Data.Vector.toList (Data.Matrix.getRow x t) | x <- [1..st]]
-        nr = [if c == 'E' then Data.Set.singleton 1 else Data.Set.empty | c <- a]
+        nr = [if c == 'E' then Data.Set.singleton is else Data.Set.empty | c <- a]
+        is = initialState afn
 
 finalStatesToNewInitialState :: AFN -> Matrix (Set Int) -> [Int] -> Matrix (Set Int)
 finalStatesToNewInitialState afn t [x] = Data.Matrix.setElem nct (x+1,ie+1) t
