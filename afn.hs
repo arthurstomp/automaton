@@ -14,6 +14,11 @@ module AFN
 , transitiveClosure
 , transitionFromState
 , indexTransition 
+, simple
+, AFN.or
+, AFN.concat
+, star
+, prettyInitialState
 )where
 
 import Data.Set
@@ -267,11 +272,10 @@ foo (cs,c)
   | cs == 3 && c == '1' = Data.Set.empty
   | cs == 3 && c == 'E' = Data.Set.empty
 
+--a.b+c
 a = simple 'a'
 b = simple 'b'
-o = AFN.or a b
-p = AFN.or o $ simple 'd'
+c = simple 'c'
 
-
-ns1 = nextState p (prettyInitialState p) 'a'
-
+o1 = AFN.concat a b
+o2 = AFN.or o1 c
