@@ -6,7 +6,7 @@ regexReader :: [Char] -> AFN
 regexReader [x] = simple x
 regexReader (x:y:xs) 
   | notElem x operationsChars =  rrp (simple x) Nothing (y:xs)
-  | otherwise = a
+  | otherwise = rrp a Nothing s
   where operationsChars = ['.','+','*','(',')']
         (a,s) = rrpa Nothing (simple y,xs) Nothing
 
@@ -26,6 +26,7 @@ rrp afn mop (x:xs)
 
 -- regexReaderProcessorAuxiliar = rrpa
 rrpa :: Maybe (AFN -> AFN) -> (AFN,[Char]) -> Maybe (AFN -> AFN) -> (AFN,[Char]) 
+rrpa sleeOp (afn,[]) mop = (afn,[])
 rrpa sleepOp (afn,[')']) mop 
   | isJust sleepOp = (fromJust sleepOp afn, [])
   | otherwise = (afn,[])
@@ -39,6 +40,7 @@ rrpa sleepOp (afn,(x:xs)) mop
   | isNothing mop && x == '.' = rrpa sleepOp (afn,xs) (Just $ AFN.concat afn)
   | isNothing mop && x == '+' = rrpa sleepOp (afn,xs) (Just $ AFN.or afn)
   | isJust mop && notElem x operationsChars = rrpa sleepOp ((fromJust mop $ simple x),xs) Nothing 
+  | otherwise = (rrp afn mop (x:xs),(x:xs))
   where operationsChars = ['.','+','*','(',')']
 
 main :: IO() 
