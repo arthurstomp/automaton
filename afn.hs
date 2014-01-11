@@ -68,7 +68,7 @@ partialNextState afn cs c = Data.Set.unions [transitionFromState afn x c | x <- 
 
 transitionFromState :: AFN -> Int -> Char -> Set Int
 transitionFromState afn cs t
-  | is == -1 || it == -1 = Data.Set.empty
+  | is == -1 || it == -1 = Data.Set.singleton cs
   | ns == Data.Set.empty = Data.Set.singleton cs 
   | ns /= Data.Set.empty = ns
   where it = indexTransition afn t
@@ -86,14 +86,20 @@ indexState afn cs = Data.Maybe.fromMaybe (-1) $ Data.List.elemIndex cs s
 -- Operations 
 --  Simple
 simple :: Char -> AFN
-simple ' ' = afn s alpha t is fs
+simple 'V' = afn s alpha t is fs
   where s = [1]
         a = []
-        t = Data.Matrix.fromLists [[Data.Set.empty, Data.Set.empty]]
+        t = Data.Matrix.fromLists [[Data.Set.empty]]
         is = 1
         fs = []
         alpha = a Data.List.++ "E"
-
+simple 'E' = afn s alpha t is fs
+  where s = [1]
+        a = []
+        t = Data.Matrix.fromLists [[Data.Set.singleton 1]]
+        is = 1
+        fs = [is]
+        alpha = a Data.List.++ "E"
 simple c =  afn s alpha t is fs
   where s = [1,2]
         a = [c]
