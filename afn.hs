@@ -86,6 +86,14 @@ indexState afn cs = Data.Maybe.fromMaybe (-1) $ Data.List.elemIndex cs s
 -- Operations 
 --  Simple
 simple :: Char -> AFN
+simple ' ' = afn s alpha t is fs
+  where s = [1]
+        a = []
+        t = Data.Matrix.fromLists [[Data.Set.empty, Data.Set.empty]]
+        is = 1
+        fs = []
+        alpha = a Data.List.++ "E"
+
 simple c =  afn s alpha t is fs
   where s = [1,2]
         a = [c]
