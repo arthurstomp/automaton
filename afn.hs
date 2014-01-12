@@ -14,6 +14,7 @@ module AFN
 , transitionFromState
 , transitionWithE
 , indexTransition 
+, indexState
 , simple
 , AFN.or
 , AFN.concat
@@ -249,12 +250,11 @@ starAlphabet :: AFN -> [Char]
 starAlphabet afn = alphabet afn
 
 starTransition :: AFN -> Matrix (Set Int)
-starTransition afn = ft
-  where t = transition afn
-        alpha = alphabet afn
-        nt = addNewInitialState afn t alpha
-        ifs = [indexState afn x | x <- finalStates afn]
-        ft = finalStatesToNewInitialState afn nt ifs
+starTransition afn = do let t = transition afn
+                        let alpha = alphabet afn
+                        let tWithNewInitialState = addNewInitialState afn t alpha
+                        let indexFinalStates = [indexState afn x | x <- finalStates afn]
+                        finalStatesToNewInitialState afn tWithNewInitialState indexFinalStates
 
 addNewInitialState :: AFN -> Matrix (Set Int) -> [Char] -> Matrix (Set Int)
 addNewInitialState afn t a = Data.Matrix.fromLists (rt Data.List.++ [nr])
@@ -264,18 +264,15 @@ addNewInitialState afn t a = Data.Matrix.fromLists (rt Data.List.++ [nr])
         is = initialState afn
 
 finalStatesToNewInitialState :: AFN -> Matrix (Set Int) -> [Int] -> Matrix (Set Int)
-finalStatesToNewInitialState afn t [x] = Data.Matrix.setElem nct (x+1,ie+1) t
-  where ie = indexTransition afn 'E'
---        ct = Data.Matrix.getElem x (ie+1) t 
-        ct = transitionFromState afn x 'E'
-        nct = Data.Set.insert nls ct
-        nls = 1 + (Data.List.last $ states afn)
-finalStatesToNewInitialState afn t (x:xs) = finalStatesToNewInitialState afn nt xs
-  where ie = indexTransition afn 'E'
-        ct = Data.Matrix.getElem x (ie+1) t 
-        nct = Data.Set.insert nls ct
-        nt = Data.Matrix.setElem nct (x+1,ie+1) t
-        nls = 1 + (Data.List.last $ states afn)
+finalStatesToNewInitialState afn t [x] = do let indexOfE = indexTransition afn 'E'
+                                            let fsTransition = transitionFromState afn (x+1) 'E'
+                                            let newFsTransition = Data.Set.insert (starInitialState afn) fsTransition
+                                            Data.Matrix.setElem newFsTransition (x+1,indexOfE+1) t
+finalStatesToNewInitialState afn t (x:xs) = do let indexOfE = indexTransition afn 'E'
+                                               let fsTransition = transitionFromState afn (x+1) 'E'
+                                               let newFsTransition = Data.Set.insert (starInitialState afn) fsTransition
+                                               let newTransition = Data.Matrix.setElem newFsTransition (x+1,indexOfE+1) t
+                                               finalStatesToNewInitialState afn newTransition xs
 
 starInitialState :: AFN -> Int
 starInitialState afn = 1 + (Data.List.last $ states afn)

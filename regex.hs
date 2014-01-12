@@ -51,5 +51,6 @@ rrp (Just sleepyOp) (Just afn,(x:y:xs)) _
 
 
 -- Testing area
-t = regexReader "1*.(0.1.1*)*"
+t = regexReader "(0.1.1*)*"
+a = regexReader "0.1.1*"
 
