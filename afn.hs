@@ -10,9 +10,9 @@ module AFN
 , finalStates
 , transition
 , nextState
-, partialNextState
 , transitiveClosure
 , transitionFromState
+, transitionWithE
 , indexTransition 
 , simple
 , AFN.or
@@ -42,34 +42,48 @@ afn s a t is fs = AFN { states = s
                        , finalStates = fs
                        }
 
-compute :: AFN -> Set Int -> [Char] -> Bool
-compute afn cs [] = accept afn csWithTransitiveClosure
-  where csWithTransitiveClosure = transitiveClosure afn cs
-compute afn cs (x:xs) = compute afn ns xs
-  where ns = nextState afn csWithTransitiveClosure x
-        csWithTransitiveClosure = transitiveClosure afn cs
+compute :: AFN -> [Char] -> Bool
+compute afn word = computeProcessor afn (prettyInitialState afn) word
+
+computeProcessor :: AFN -> Set Int -> [Char] -> Bool
+computeProcessor afn cs [] = accept afn cs
+computeProcessor afn cs (x:xs) = computeProcessor afn ns xs
+  where ns = nextState afn cs x
+        
 
 accept :: AFN -> Set Int -> Bool
-accept afn cs  = True `Data.List.elem` acceptance 
-  where acceptance = [ Data.List.elem x $ finalStates afn | x <- Data.Set.elems cs] 
+accept afn cs = do let tc = transitiveClosure afn cs
+                   let u = Data.Set.union cs tc
+                   let acceptance = [ Data.List.elem x $ finalStates afn | x <- Data.Set.elems u] 
+                   True `Data.List.elem` acceptance 
 
 nextState :: AFN -> Set Int -> Char -> Set Int
-nextState afn cs t = transitiveClosure afn pns
-  where pns = partialNextState afn cs t
+nextState afn cs c = do let transitiveClosureCs = transitiveClosure afn cs
+                        let u = Data.Set.union cs transitiveClosureCs
+                        Data.Set.unions [transitionFromState afn x c | x <- Data.Set.elems u]
 
+-- Transitive Closure = Every node reached with a E.
 transitiveClosure :: AFN -> Set Int -> Set Int
-transitiveClosure afn cs 
-  | partial == cs = partial
-  | partial /= cs = transitiveClosure afn partial
-  where partial = Data.Set.union cs $ partialNextState afn cs 'E'
+transitiveClosure afn cs = transitiveClosureProcessor afn cs cs
+-- transitiveClosureProcessor :: AFN -> initialSet -> initialSetToBeRemoved -> Return
+transitiveClosureProcessor :: AFN -> Set Int -> Set Int -> Set Int
+transitiveClosureProcessor afn cs toBeRemoved
+  | Data.Set.isSubsetOf tE cs = cs 
+  | otherwise = do let u = Data.Set.union tE cs
+                   let ncs = Data.Set.difference u toBeRemoved
+                   transitiveClosureProcessor afn ncs Data.Set.empty
+  where tE = Data.Set.unions [transitionWithE afn x | x <- Data.Set.elems cs]
 
-partialNextState :: AFN -> Set Int -> Char -> Set Int
-partialNextState afn cs c = Data.Set.unions [transitionFromState afn x c | x <- Data.Set.elems cs]
+-- Transition with E = next states reached with a empty transition 
+transitionWithE :: AFN -> Int -> Set Int
+transitionWithE afn s = transitionMatrix Data.Matrix.! (statePosition,ePosition)
+  where statePosition = 1 + (indexState afn s)
+        ePosition = 1 + (indexTransition afn 'E')
+        transitionMatrix = transition afn
 
 transitionFromState :: AFN -> Int -> Char -> Set Int
 transitionFromState afn cs t
-  | is == -1 || it == -1 = Data.Set.singleton cs
-  | ns == Data.Set.empty = Data.Set.singleton cs 
+  | ns == Data.Set.empty = Data.Set.empty
   | ns /= Data.Set.empty = ns
   where it = indexTransition afn t
         is = indexState afn cs
@@ -82,6 +96,9 @@ indexTransition afn t = Data.Maybe.fromMaybe (-1) $ Data.List.elemIndex t a
 indexState :: AFN -> Int -> Int
 indexState afn cs = Data.Maybe.fromMaybe (-1) $ Data.List.elemIndex cs s
   where s = states afn
+
+prettyInitialState :: AFN -> Set Int
+prettyInitialState afn = Data.Set.singleton $ initialState afn
 
 -- Operations 
 --  Simple
@@ -249,7 +266,8 @@ addNewInitialState afn t a = Data.Matrix.fromLists (rt Data.List.++ [nr])
 finalStatesToNewInitialState :: AFN -> Matrix (Set Int) -> [Int] -> Matrix (Set Int)
 finalStatesToNewInitialState afn t [x] = Data.Matrix.setElem nct (x+1,ie+1) t
   where ie = indexTransition afn 'E'
-        ct = Data.Matrix.getElem x (ie+1) t 
+--        ct = Data.Matrix.getElem x (ie+1) t 
+        ct = transitionFromState afn x 'E'
         nct = Data.Set.insert nls ct
         nls = 1 + (Data.List.last $ states afn)
 finalStatesToNewInitialState afn t (x:xs) = finalStatesToNewInitialState afn nt xs
@@ -265,32 +283,3 @@ starInitialState afn = 1 + (Data.List.last $ states afn)
 starFinalState :: AFN -> [Int]
 starFinalState afn = [1 + (Data.List.last $ states afn)]
 
--- Testing Area
-prettyInitialState :: AFN -> Set Int
-prettyInitialState afn = Data.Set.singleton $ initialState afn
-
-mountMatrix :: [Int] -> [Char] -> ((Int,Char) -> Set Int) -> Matrix (Set Int)
-mountMatrix s a foo = Data.Matrix.fromLists [possibleTransitions x a foo | x <- s]
-
-possibleTransitions :: Int -> [Char] -> ((Int,Char) -> Set Int) -> [Set Int]
-possibleTransitions cs a foo = [foo(cs,c) | c <- a]
-
-foo :: (Int,Char) -> Set Int
-foo (cs,c)
-  | cs == 1 && c == '0' = Data.Set.fromList [1,2] 
-  | cs == 1 && c == '1' = Data.Set.singleton 1
-  | cs == 1 && c == 'E' = Data.Set.empty
-  | cs == 2 && c == '0' = Data.Set.singleton 3
-  | cs == 2 && c == '1' = Data.Set.empty
-  | cs == 2 && c == 'E' = Data.Set.empty
-  | cs == 3 && c == '0' = Data.Set.empty
-  | cs == 3 && c == '1' = Data.Set.empty
-  | cs == 3 && c == 'E' = Data.Set.empty
-
---a.b+c
-a = simple 'a'
-b = simple 'b'
-c = simple 'c'
-
-o1 = AFN.concat a b
-o2 = AFN.or o1 c

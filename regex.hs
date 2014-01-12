@@ -47,3 +47,9 @@ rrp (Just sleepyOp) (Just afn,[')']) _ = rrp Nothing (Just(sleepyOp $ afn),[]) N
 rrp (Just sleepyOp) (Just afn,(x:y:xs)) _
   | x == ')' && y == '*' = rrp Nothing (Just(sleepyOp $ star afn),xs) Nothing
   | x == ')' && y /= '*' = rrp Nothing (Just(sleepyOp $ afn),(y:xs)) Nothing
+
+
+
+-- Testing area
+t = regexReader "1*.(0.1.1*)*"
+
