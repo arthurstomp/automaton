@@ -5,32 +5,40 @@ import Data.Maybe
 regexReader :: [Char] -> AFN
 regexReader regex = rrp Nothing (Nothing,regex) Nothing 
 
+-- rrp :: maybe sleepyOp -> (maybe AFN, regex) -> maybe currentOp -> resultAFN
+--  maybe sleepyOp /= Nothing when reading is outside parenteses
+--  maybe AFN and resultAFN is just for start the process and give back the result
+--  currentOp keep the operation waiting for it second element
 rrp :: Maybe ( AFN -> AFN ) -> (Maybe AFN,[Char]) -> Maybe ( AFN -> AFN ) -> AFN
 -- Case of empty regex
-rrp sleepyOP (Nothing,[]) Nothing = simple ' '
--- Case maybeAFN is nothing. That`s the first char read or the regex have just entered in a parenteses
-rrp sleepyOp (Nothing,(x:xs)) Nothing 
-  | x == '(' = rrp sleepyOp (Nothing,xs) Nothing
-  | notElem x ['.','+','*','(',')'] = rrp sleepyOp (Just $ simple x, xs) Nothing
-  | otherwise = simple ' '
--- Reaches a empty list 
-rrp sleepyOp (Just afn, []) Nothing
-  | isNothing sleepyOp = afn
-  | isJust sleepyOp = (fromJust sleepyOp) afn 
-  | otherwise = error "Reaches a empty list"
--- Close a parenteses and have no sleepyOp 
-rrp Nothing (Just afn, (')':y:xs)) nextOp 
-  | y == '*' = rrp Nothing (Just $ star afn, xs) Nothing
-  | otherwise = rrp Nothing (Just afn,(y:xs)) Nothing
--- Close parenteses and have a sleepyOp
-rrp (Just sleepyOp) (Just afn, (')':y:xs)) nextOp 
-  | y == '*' = rrp Nothing (Just $ sleepyOp $ star afn,xs) Nothing
-  | otherwise = rrp Nothing (Just $ sleepyOp afn, (y:xs)) Nothing
-
-rrp sleepyOp (Just afn, (x:xs)) nextOp
-  | x == '(' = rrp nextOp (Nothing,xs) Nothing
-  | notElem x ['.','+','*','(',')'] = do let op = fromJust nextOp
-                                         rrp Nothing (Just $ op $ simple x,xs) Nothing
-  | x == '*' = rrp Nothing (Just $ star afn,xs) Nothing
-  | x == '.' = rrp Nothing (Just afn, xs) (Just $ AFN.concat afn)
-  | x == '+' = rrp Nothing (Just afn, xs) (Just $ AFN.or afn)
+rrp _ (Nothing,[]) Nothing = simple 'V'
+-- Reading outside parenteses the first character or start with '('
+rrp _ (Just afn,[]) Nothing = afn
+rrp _ (Nothing,[x]) Nothing = rrp Nothing (Just $ simple x, []) Nothing
+rrp _ (Nothing,(x:y:xs)) Nothing
+  | notElem x ['.','+','*','(',')'] && y /= '*' = rrp Nothing (Just $ simple x, (y:xs)) Nothing
+  | notElem x ['.','+','*','(',')'] && y == '*' = rrp Nothing (Just $ star $ simple x, (xs)) Nothing
+rrp Nothing (Nothing,(x:y:xs)) Nothing
+  | x == '(' = rrp Nothing (Nothing, (y:xs)) Nothing
+-- Reading operation outside parenteses
+rrp _ (Just afn,(x:xs)) Nothing
+  | x == '.' = rrp Nothing (Nothing, xs) (Just $ AFN.concat afn)
+  | x == '+' = rrp Nothing (Nothing, xs) (Just $ AFN.or afn)
+  | x == '*' = rrp Nothing (Just $ star $ afn,xs) Nothing 
+-- Filing currentOp
+rrp _ (Nothing, [x]) (Just currentOp) = rrp Nothing (Just(currentOp $ simple x),[]) Nothing
+rrp _ (Nothing, (x:y:xs)) (Just currentOp)
+  | x == '(' = rrp (Just currentOp) (Nothing,(y:xs)) Nothing
+  | notElem x ['.','+','*','(',')'] && y == '(' = rrp (Just currentOp) (Nothing,xs) Nothing
+  | notElem x ['.','+','*','(',')'] && y == '*' = rrp Nothing (Just(currentOp $ star $ simple x),(xs)) Nothing
+  | notElem x ['.','+','*','(',')'] && y /= '*' = rrp Nothing (Just(currentOp $ simple x),(y:xs)) Nothing
+-- Closing paranteses when no sleepyOp
+rrp Nothing (Just afn,[')']) _ = rrp Nothing (Just afn,[]) Nothing
+rrp Nothing (Just afn,(x:y:xs)) _
+  | x == ')' && y == '*' = rrp Nothing (Just $ star afn,xs) Nothing
+  | x == ')' && y /= '*' = rrp Nothing (Just afn,(y:xs)) Nothing
+-- Closing parenteses
+rrp (Just sleepyOp) (Just afn,[')']) _ = rrp Nothing (Just(sleepyOp $ afn),[]) Nothing
+rrp (Just sleepyOp) (Just afn,(x:y:xs)) _
+  | x == ')' && y == '*' = rrp Nothing (Just(sleepyOp $ star afn),xs) Nothing
+  | x == ')' && y /= '*' = rrp Nothing (Just(sleepyOp $ afn),(y:xs)) Nothing
