@@ -10,6 +10,73 @@ import Data.Maybe
 regexReader :: [Char] -> AFN
 regexReader regex = rrp Nothing (Nothing,regex) Nothing 
 
+afnConstructor :: [Char] -> AFN
+afnConstructor [x] = simple x
+afnContructor (x:y:z:xs) 
+  | notElem x ['.','+','*','(',')'] && y == '+' =  
+  | notElem x ['.','+','*','(',')'] && y == '.' = dotContructor (simple x) xs
+  | notElem x ['.','+','*','(',')'] && y == '*' && z == [] = star x
+  | notElem x ['.','+','*','(',')'] && y == '*' && z == '+' = plusConstructor (star x) xs
+  | notElem x ['.','+','*','(',')'] && y == '*' && z == '.' = dotConstructor (star x) xs
+  | x == '(' = afnConstructor (y:xs) 
+
+dotConstructor :: AFN -> [Char] -> AFN
+dotConstructor afn [x] = AFN.concat afn (simple x)
+dotConstructor afn (x:y:z:xs)
+  | x == '(' = do let parentesesAFN = parentesesConstructor (simple y) (y:z:xs)
+                  AFN.concat afn parentesesAFN
+  | notElem x ['.','+','*','(',')'] && y == '*' = do let starAFN = starConstructor (simple x) (z:xs) 
+                                                     AFN.concat afn starAFN
+  | notElem x ['.','+','*','(',')'] && y == '.' = do let previousAFN = AFN.concat afn (simple x)
+                                                     dotConstructor previousAFN (z:xs)
+  | notElem x ['.','+','*','(',')'] && y == '+' && z == '(' = do let plusAFN = parentesesConstructor (simple $ head xs) (tail xs)
+                                                                 let previousAFN = AFN.concat afn (simple x)
+                                                                 AFN.or previousAFN plusAFN
+  | notElem x ['.','+','*','(',')'] && y == '+' && z /= '(' = do let plusAFN = plusConstructor (simple z) xs
+                                                                 let previousAFN = AFN.concat afn (simple x)
+                                                                 AFN.or previousAFN plusAFN
+
+starConstructor :: AFN -> [Char] -> AFN
+starConstructor afn [] = star afn
+starConstructor afn (x:xs)
+  | x == '.' = do let starAFN = star afn
+                      dotConstructor starAFN xs
+  | x == '+' && y == '(' = do let starAFN = star afn 
+                              let parentesesAFN = parentesesConstructor (simple $ head xs) (tail xs) 
+                              AFN.or starAFN parentesesAFN
+  | x == '+' && y /= '(' = do let starAFN = star afn
+                              let plusAFN = plusConstructor (simple y) xs
+                              AFN.or starAFN plusAFN
+
+parentesesConstructor :: AFN -> [Char] -> AFN
+parentesesConstructor afn [')'] = afn
+parentesesConstructor afn (x:y:xs)
+  | x == ')' = parentesesConstructor afn xs
+  | x == '.' = dotConstructor afn (y:xs) 
+  | x == '+' = plusConstructor afn (y:xs) 
+  | x == '*' = starConstructor afn (y:xs)
+
+plusConstructor :: AFN -> [Char] -> AFN
+plusConstructor afn [x] = AFN.or afn $ simple x
+plusConstructor afn (x:y:z:xs) 
+  | x == '(' = do let parentesesAFN = parentesesConstructor (simple y) (y:z:xs)
+                  AFN.or afn parentesesAFN
+  | notElem x ['.','+','*','(',')'] && y == '*' = do let starAFN = starConstructor (simple x) (z:xs)
+                                                     AFN.or afn starAFN 
+  | notElem x ['.','+','*','(',')'] && y == '.' && z == '(' = do let previousAFN = AFN.or afn $ simple x
+                                                                 dotConstructor previousAFN xs
+  | notElem x ['.','+','*','(',')'] && y == '.' && z /= '(' = do let previousAFN = AFN.or afn $ simple x
+                                                                 dotConstructor previousAFN xs
+  | notElem x ['.','+','*','(',')'] && y == '+' && z == '(' = do let previousAFN = AFN.or afn $ simple x
+                                                                 plusConstructor previousAFN xs
+  | notElem x ['.','+','*','(',')'] && y == '+' && z /= '(' = do let previousAFN = AFN.or afn $ simple x
+                                                                 plusConstructor previousAFN xs
+
+
+
+
+
+
 -- rrp :: maybe sleepyOp -> (maybe AFN, regex) -> maybe currentOp -> resultAFN
 --  maybe sleepyOp /= Nothing when reading is outside parenteses
 --  maybe AFN and resultAFN is just for start the process and give back the result
