@@ -38,6 +38,7 @@ nextState afd cs t = do
   where m = transition afd
         ics = (Data.Maybe.fromJust $ Data.List.elemIndex cs $ states afd) + 1
 
+-- Transforma um AFN num AFD
 -- turn a AFN into AFD
 turn :: AFN.AFN -> AFD
 turn afn = afd s a t is fs
