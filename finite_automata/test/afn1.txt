@@ -1,7 +1,0 @@
-(a+b)*.a.(a+b)*
-a
-b
-aa
-bb
-ab
-ba
